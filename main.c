@@ -16,16 +16,15 @@ static GLdouble viewer[]={0.0,0.0,5.0};
 
 static double G = 0.01;// 0.00000000006674; // newtons gravitational constant
 
-static int N = 50;
+static int N = 200;
 static int DELAY = 0; // delay between frames (microseconds)
 static double dT = 0.1; // change it rate of time
 
 static int p = 3; // number of dimensions, either 2 or 3
 
-static double M = 1; // mass of bodies
 
-bool rM = true; // random masses
-bool rV = true; // random initial velocity
+bool rM = false; // random masses
+bool rV = false; // random initial velocity
 
 
 // position arrays
@@ -106,11 +105,11 @@ void setTempVelocity(int i)
 	// update tx, ty, tz
 	// F = MA -> A = F/M
 	// A = dV -> v(n+1) = v(n) + A, simple :)
-	double Ax = Fx/M;
-	double Ay = Fy/M;
+	double Ax = Fx/m[i];
+	double Ay = Fy/m[i];
 	double Az = 0;
 	if (p == 3)
-		Az = Fz/M;
+		Az = Fz/m[i];
 	
 	tx[i] = vx[i] - (Ax * dT);
 	ty[i] = vy[i] - (Ay * dT);
@@ -120,6 +119,9 @@ void setTempVelocity(int i)
 
 void init()
 {
+	
+	
+	
 	px = malloc(sizeof(double) * N);
 	py = malloc(sizeof(double) * N);
 	pz = malloc(sizeof(double) * N);
@@ -177,7 +179,7 @@ void init()
 		
 		if (rM)
 		{
-			m[i] = (((double)rand()/RAND_MAX))/20;
+			m[i] = (((double)rand()/RAND_MAX))/50;
 		}
 		else
 		{
