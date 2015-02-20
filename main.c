@@ -21,7 +21,7 @@ static int N = 200;
 static int DELAY = 0; // delay between frames (microseconds)
 static double dT = 0.2; // change it rate of time
 
-static int p = 2; // number of dimensions, either 2 or 3
+static int p = 3; // number of dimensions, either 2 or 3
 
 int iter = 0;
 
@@ -30,14 +30,19 @@ double R = 10; // body spawn radius
 
 bool rM = true; // random masses
 bool rV = true; // random initial velocity
-bool col = false; // collisio2
+bool clu = false; // collisio2
+
+// collision speeds
+double cY = 0.8;
+double cX = 0.0;
+
+double IR = 0.1; // imbalance of clusters
 
 int T = 8; // thread count
 
 bool follow = true; // camera follow average point
 bool lighting = false;
 
-double IR = 0.3; // imbalance of clusters
 
 
 // position arrays
@@ -51,7 +56,6 @@ double* vz;
 // mass array
 double* m;
 
-double zoom = 1;
 
 double getMean(int n, double* arr)
 {
@@ -161,7 +165,7 @@ void init()
 	for (i = 0; i < N; i++)
 	{
 		rnd = ((double)rand()/RAND_MAX);
-		if (col)
+		if (clu)
 		{
 			if (rnd > IR)
 			{
@@ -215,7 +219,7 @@ void init()
 				vz[i] = (((double)rand()/RAND_MAX)-0.5);
 			}
 		}
-		else if (col)
+		else if (clu)
 		{
 			if (rnd > IR)
 			{
@@ -224,8 +228,8 @@ void init()
 			}
 			else
 			{
-				vx[i] = 0;
-				vy[i] = -0.2;
+				vx[i] = -cX;
+				vy[i] = -cY;
 			}
 		}
 		else
@@ -298,18 +302,17 @@ void display(void)
 	glLoadIdentity();
 	if (follow)
 	{
-		gluLookAt(getMean(N, px), getMean(N, py),getMean(N, pz)+10+zoom,getMean(N, px), getMean(N, py),getMean(N, pz),
+		gluLookAt(getMean(N, px)+theta[0], getMean(N, py)+theta[1],getMean(N, pz)+10+theta[2]
+		,getMean(N, px)+theta[0], getMean(N, py)+theta[1],getMean(N, pz),
 		1.0,1.0,1.0);
 	}
 	else
 	{
-		gluLookAt(viewer[0], viewer[1],viewer[2],0.0,0.0,0.0, 
+		gluLookAt(viewer[0]+theta[0], viewer[1]+theta[1],viewer[2]+theta[2],0.0,0.0,0.0, 
 		1.0,1.0,1.0);
 	}
-	printf("%f %f %f",getMean(N, px), getMean(N, py),getMean(N, pz));
-	glRotatef(theta[0],1.0,0.0,0.0);
-	glRotatef(theta[1],0.0,1.0,0.0);
-	glRotatef(theta[2],0.0,0.0,1.0);
+	//printf("%f %f %f",getMean(N, px), getMean(N, py),getMean(N, pz));
+	//printf("%f %f %f",theta[0], theta[1], theta[2]);
 	
 	if (lighting)
 	{
@@ -335,11 +338,12 @@ void display(void)
 
 void keys(unsigned char key, int x, int y)
 {
-	if(key == 'x') theta[0]+=1.0;
-	if(key == 'y') theta[1]+=1.0;
-	if(key == 'z') theta[2]+=1.0;
-	if(key == 'a') zoom-=0.1;
-	if(key == 'b') zoom+=0.1;
+	if(key == 'a') {theta[0]+=0.1;theta[1]-=0.1;}
+	if(key == 'd') {theta[0]-=0.1;theta[1]+=0.1;}
+	if(key == 'w') {theta[0]-=0.1;theta[1]-=0.1;}
+	if(key == 's') {theta[0]+=0.1;theta[1]+=0.1;}
+	if(key == 'q') theta[2]-=0.1;
+	if(key == 'e') theta[2]+=0.1;
 	display();
 }
 
