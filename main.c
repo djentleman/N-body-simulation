@@ -15,9 +15,9 @@
 static GLfloat theta[]={0.0,0.0,0.0};
 static GLdouble viewer[]={0.0,0.0,5.0};
 
-static double G = 0.001;// 0.00000000006674; // newtons gravitational constant
+static double G = 0.000000001;//0.00000000006674; // newtons gravitational constant
 
-static int N = 200;
+static int N = 100;
 static int DELAY = 0; // delay between frames (microseconds)
 static double dT = 0.5; // change it rate of time
 
@@ -25,7 +25,7 @@ static int p = 2; // number of dimensions, either 2 or 3
 
 int iter = 0;
 
-double M = 0.05; // maximum mass, only works if rM
+double M = 1000000; // maximum mass, only works if rM
 double R = 10; // body spawn radius
 
 bool rM = true; // random masses
@@ -37,7 +37,7 @@ int T = 8; // thread count
 bool follow = true; // camera follow average point
 bool lighting = false;
 
-double IR = 0.05; // imbalance of clusters
+double IR = 0.2; // imbalance of clusters
 
 
 // position arrays
@@ -243,18 +243,21 @@ void init()
 		}
 		else
 		{
-			m[i] = 0.01;
+			m[i] = M/10;
 		}
 	}
 }
 
 void plot()
 {
+	// volume of sphere: v = 4pir^3/3
+	// cuberoot(3v/4pi) = r
+	
 	int i;
 	for (i = 0; i < N; i++)
 	{
 		glTranslatef(px[i], py[i], pz[i]);
-		glutSolidSphere(m[i], 20, 16);
+		glutSolidSphere( cbrt(m[i])/1000, 20, 16);
 		glTranslatef(-px[i], -py[i], -pz[i]);
 	}
 }
