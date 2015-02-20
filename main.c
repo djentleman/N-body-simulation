@@ -5,6 +5,7 @@
 #include <time.h>
 #include <math.h>
 #include <stdbool.h>
+#include <omp.h>
 
 
 
@@ -16,7 +17,7 @@ static GLdouble viewer[]={0.0,0.0,5.0};
 
 static double G = 0.001;// 0.00000000006674; // newtons gravitational constant
 
-static int N = 200;
+static int N = 100;
 static int DELAY = 0; // delay between frames (microseconds)
 static double dT = 1; // change it rate of time
 
@@ -24,11 +25,16 @@ static int p = 2; // number of dimensions, either 2 or 3
 
 int iter = 0;
 
+double M = 0.1; // maximum mass, only works if rM
+double R = 1; // body spawn radius
+
 bool rM = true; // random masses
 bool rV = false; // random initial velocity
-bool col = true; // collision
+bool col = true; // collisio2
 
-double IR = 0.1; // imbalance of clusters
+int T = 8; // thread count
+
+double IR = 0.05; // imbalance of clusters
 
 
 // position arrays
@@ -119,7 +125,9 @@ void updateVelocity(int i)
 
 void init()
 {
-   
+    // set up open MP
+	omp_set_dynamic(0);
+	omp_set_num_threads(T);
 	
 	
 	px = malloc(sizeof(double) * N);
@@ -144,8 +152,8 @@ void init()
 			if (rnd > IR)
 			{
 				// cluster 1
-				px[i] = (((double)rand()/RAND_MAX)-0.5)*0.2;
-				py[i] = (((double)rand()/RAND_MAX)-0.5)*0.2;
+				px[i] = (((double)rand()/RAND_MAX)-0.5)/2;
+				py[i] = (((double)rand()/RAND_MAX)-0.5)/2;
 			}
 			else
 			{
@@ -156,8 +164,8 @@ void init()
 		}
 		else
 		{
-			px[i] = (((double)rand()/RAND_MAX)-0.5);
-			py[i] = (((double)rand()/RAND_MAX)-0.5);
+			px[i] = (((double)rand()/RAND_MAX)-0.5)*R;
+			py[i] = (((double)rand()/RAND_MAX)-0.5)*R;
 			
 			
 		}
@@ -167,7 +175,7 @@ void init()
 		}
 		else
 		{
-			pz[i] = (((double)rand()/RAND_MAX)-0.5);
+			pz[i] = (((double)rand()/RAND_MAX)-0.5)*R;
 		}	
 		
 		
@@ -211,7 +219,7 @@ void init()
 		
 		if (rM)
 		{
-			m[i] = (((double)rand()/RAND_MAX))/20;
+			m[i] = (((double)rand()/RAND_MAX))*M;
 		}
 		else
 		{
@@ -234,21 +242,27 @@ void plot()
 void update()
 {
 	// update velocities based on other points
-	
 	int i;
-	// this loop will be parallelized
-	for (i = 0; i < N; i++)
+	
+	#pragma omp parallel
 	{
-		updateVelocity(i);
+		#pragma omp for
+		for (i = 0; i < N; i++)
+		{
+			updateVelocity(i);
+		}
 	}
 	
-	// so will this one
 	
-	for (i = 0; i < N; i++)
+	#pragma omp parallel
 	{
-		px[i] += vx[i] * dT;
-		py[i] += vy[i] * dT;
-		pz[i] += vz[i] * dT;
+		#pragma omp for
+		for (i = 0; i < N; i++)
+		{
+			px[i] += vx[i] * dT;
+			py[i] += vy[i] * dT;
+			pz[i] += vz[i] * dT;
+		}
 	}
 }
 
