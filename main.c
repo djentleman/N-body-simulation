@@ -16,15 +16,18 @@ static GLdouble viewer[]={0.0,0.0,5.0};
 
 static double G = 0.01;// 0.00000000006674; // newtons gravitational constant
 
-static int N = 200;
+static int N = 100;
 static int DELAY = 0; // delay between frames (microseconds)
 static double dT = 0.1; // change it rate of time
 
-static int p = 3; // number of dimensions, either 2 or 3
+static int p = 2; // number of dimensions, either 2 or 3
 
 
-bool rM = false; // random masses
+bool rM = true; // random masses
 bool rV = false; // random initial velocity
+bool col = true; // collision
+
+double IR = 0.5; // imbalance of clusters
 
 
 // position arrays
@@ -141,11 +144,32 @@ void init()
 	
 	srand(time(NULL));
 	int i;
+	double rnd;
 	for (i = 0; i < N; i++)
 	{
-		px[i] = (((double)rand()/RAND_MAX)-0.5);
-		py[i] = (((double)rand()/RAND_MAX)-0.5);
-		
+		rnd = ((double)rand()/RAND_MAX);
+		if (col)
+		{
+			if (rnd > IR)
+			{
+				// cluster 1
+				px[i] = (((double)rand()/RAND_MAX)-0.25)*0.2;
+				py[i] = (((double)rand()/RAND_MAX)*0.2+3);
+			}
+			else
+			{
+				// cluster 2
+				px[i] = (((double)rand()/RAND_MAX)-0.5);
+				py[i] = (((double)rand()/RAND_MAX)-3);
+			}
+		}
+		else
+		{
+			px[i] = (((double)rand()/RAND_MAX)-0.5);
+			py[i] = (((double)rand()/RAND_MAX)-0.5);
+			
+			
+		}
 		if (p == 2)
 		{
 			pz[i] = 0;
@@ -153,7 +177,8 @@ void init()
 		else
 		{
 			pz[i] = (((double)rand()/RAND_MAX)-0.5);
-		}
+		}	
+		
 		
 		if (rV)
 		{
@@ -162,8 +187,24 @@ void init()
 		}
 		else
 		{
-			vx[i] = 0;
-			vy[i] = 0;
+			if (col)
+			{
+				if (rnd > IR)
+				{
+					vx[i] =(((double)rand()/RAND_MAX)-0.5)/100;
+					vy[i] = -0.05;
+				}
+				else
+				{
+					vx[i] =(((double)rand()/RAND_MAX)-0.5)/100;
+					vy[i] = 0.05;
+				}
+			}
+			else
+			{
+				vx[i] = 0;
+				vy[i] = 0;
+			}
 		}
 		
 		if (p == 2 || !rV)
@@ -179,11 +220,11 @@ void init()
 		
 		if (rM)
 		{
-			m[i] = (((double)rand()/RAND_MAX))/50;
+			m[i] = (((double)rand()/RAND_MAX))/20;
 		}
 		else
 		{
-			m[i] = 0.05;
+			m[i] = 0.01;
 		}
 	}
 }
