@@ -14,20 +14,21 @@
 static GLfloat theta[]={0.0,0.0,0.0};
 static GLdouble viewer[]={0.0,0.0,5.0};
 
-static double G = 0.01;// 0.00000000006674; // newtons gravitational constant
+static double G = 0.001;// 0.00000000006674; // newtons gravitational constant
 
-static int N = 100;
+static int N = 200;
 static int DELAY = 0; // delay between frames (microseconds)
-static double dT = 0.1; // change it rate of time
+static double dT = 1; // change it rate of time
 
 static int p = 2; // number of dimensions, either 2 or 3
 
+int iter = 0;
 
 bool rM = true; // random masses
 bool rV = false; // random initial velocity
 bool col = true; // collision
 
-double IR = 0.5; // imbalance of clusters
+double IR = 0.1; // imbalance of clusters
 
 
 // position arrays
@@ -38,10 +39,6 @@ double* pz;
 double* vx;
 double* vy;
 double* vz;
-// temp arrays
-double* tx;
-double* ty;
-double* tz;
 // mass array
 double* m;
 
@@ -86,7 +83,7 @@ double getForce(int i, int j, int d)
 
 }
 
-void setTempVelocity(int i)
+void updateVelocity(int i)
 {
 	
 	int j;
@@ -114,15 +111,15 @@ void setTempVelocity(int i)
 	if (p == 3)
 		Az = Fz/m[i];
 	
-	tx[i] = vx[i] - (Ax * dT);
-	ty[i] = vy[i] - (Ay * dT);
+	vx[i] = vx[i] - (Ax * dT);
+	vy[i] = vy[i] - (Ay * dT);
 	if (p == 3) // else will stay 0
-		tz[i] = vz[i] - (Az * dT);
+		vz[i] = vz[i] - (Az * dT);
 }
 
 void init()
 {
-	
+   
 	
 	
 	px = malloc(sizeof(double) * N);
@@ -133,12 +130,6 @@ void init()
 	vy = malloc(sizeof(double) * N);
 	vz = malloc(sizeof(double) * N);
 	
-	tx = malloc(sizeof(double) * N);
-	ty = malloc(sizeof(double) * N);
-	tz = malloc(sizeof(double) * N);
-	memset(tx, 0, sizeof(tx[0]) * N); 
-	memset(ty, 0, sizeof(tx[0]) * N); 
-	memset(tz, 0, sizeof(tx[0]) * N); 
 	
 	m = malloc(sizeof(double) * N);
 	
@@ -153,14 +144,14 @@ void init()
 			if (rnd > IR)
 			{
 				// cluster 1
-				px[i] = (((double)rand()/RAND_MAX)-0.25)*0.2;
-				py[i] = (((double)rand()/RAND_MAX)*0.2+3);
+				px[i] = (((double)rand()/RAND_MAX)-0.5)*0.2;
+				py[i] = (((double)rand()/RAND_MAX)-0.5)*0.2;
 			}
 			else
 			{
 				// cluster 2
-				px[i] = (((double)rand()/RAND_MAX)-0.5);
-				py[i] = (((double)rand()/RAND_MAX)-3);
+				px[i] = (((double)rand()/RAND_MAX)+2);
+				py[i] = (((double)rand()/RAND_MAX)+2);
 			}
 		}
 		else
@@ -191,13 +182,13 @@ void init()
 			{
 				if (rnd > IR)
 				{
-					vx[i] =(((double)rand()/RAND_MAX)-0.5)/100;
-					vy[i] = -0.05;
+					vx[i] = 0;
+					vy[i] = 0;
 				}
 				else
 				{
-					vx[i] =(((double)rand()/RAND_MAX)-0.5)/100;
-					vy[i] = 0.05;
+					vx[i] = 0;
+					vy[i] = -0.1;
 				}
 			}
 			else
@@ -248,23 +239,16 @@ void update()
 	// this loop will be parallelized
 	for (i = 0; i < N; i++)
 	{
-		setTempVelocity(i);
+		updateVelocity(i);
 	}
 	
 	// so will this one
-	for (i = 0; i < N; i++)
-	{
-		vx[i] = tx[i];
-		vy[i] = ty[i];
-		if (p == 3)
-			vz[i] = tz[i];
-	}
 	
 	for (i = 0; i < N; i++)
 	{
-		px[i] += vx[i];
-		py[i] += vy[i];
-		pz[i] += vz[i];
+		px[i] += vx[i] * dT;
+		py[i] += vy[i] * dT;
+		pz[i] += vz[i] * dT;
 	}
 }
 
@@ -278,6 +262,9 @@ void display(void)
 	glRotatef(theta[1],0.0,1.0,0.0);
 	glRotatef(theta[2],0.0,0.0,1.0);
 	glScalef(zoom, zoom, zoom);
+	
+	
+	printf("Iter: %i\n", ++iter);
 	plot();
 	glFlush();
 	glutSwapBuffers();
