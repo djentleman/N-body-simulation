@@ -17,22 +17,25 @@ static GLdouble viewer[]={0.0,0.0,5.0};
 
 static double G = 0.001;// 0.00000000006674; // newtons gravitational constant
 
-static int N = 100;
+static int N = 200;
 static int DELAY = 0; // delay between frames (microseconds)
-static double dT = 1; // change it rate of time
+static double dT = 0.5; // change it rate of time
 
 static int p = 2; // number of dimensions, either 2 or 3
 
 int iter = 0;
 
-double M = 0.1; // maximum mass, only works if rM
-double R = 1; // body spawn radius
+double M = 0.05; // maximum mass, only works if rM
+double R = 10; // body spawn radius
 
 bool rM = true; // random masses
 bool rV = false; // random initial velocity
 bool col = true; // collisio2
 
 int T = 8; // thread count
+
+bool follow = true; // camera follow average point
+bool lighting = false;
 
 double IR = 0.05; // imbalance of clusters
 
@@ -49,6 +52,17 @@ double* vz;
 double* m;
 
 double zoom = 1;
+
+double getMean(int n, double* arr)
+{
+	int i;
+	double sum = 0;
+	for (i = 0; i < n; i++)
+	{
+		sum += arr[i];
+	}
+	return sum/n;
+}
 
 double getMinkowskiDistance(int i, int j)
 {
@@ -161,6 +175,15 @@ void init()
 				px[i] = (((double)rand()/RAND_MAX)+2);
 				py[i] = (((double)rand()/RAND_MAX)+2);
 			}
+			
+			if (p == 2)
+			{
+				pz[i] = 0;
+			}
+			else
+			{
+				pz[i] = (((double)rand()/RAND_MAX)-0.5);
+			}	
 		}
 		else
 		{
@@ -168,15 +191,15 @@ void init()
 			py[i] = (((double)rand()/RAND_MAX)-0.5)*R;
 			
 			
+			if (p == 2)
+			{
+				pz[i] = 0;
+			}
+			else
+			{
+				pz[i] = (((double)rand()/RAND_MAX)-0.5)*R;
+			}	
 		}
-		if (p == 2)
-		{
-			pz[i] = 0;
-		}
-		else
-		{
-			pz[i] = (((double)rand()/RAND_MAX)-0.5)*R;
-		}	
 		
 		
 		if (rV)
@@ -184,26 +207,23 @@ void init()
 			vx[i] =(((double)rand()/RAND_MAX)-0.5)/100;
 			vy[i] =(((double)rand()/RAND_MAX)-0.5)/100;
 		}
-		else
+		else if (col)
 		{
-			if (col)
-			{
-				if (rnd > IR)
-				{
-					vx[i] = 0;
-					vy[i] = 0;
-				}
-				else
-				{
-					vx[i] = 0;
-					vy[i] = -0.1;
-				}
-			}
-			else
+			if (rnd > IR)
 			{
 				vx[i] = 0;
 				vy[i] = 0;
 			}
+			else
+			{
+				vx[i] = 0;
+				vy[i] = -0.2;
+			}
+		}
+		else
+		{
+			vx[i] = 0;
+			vy[i] = 0;
 		}
 		
 		if (p == 2 || !rV)
@@ -264,19 +284,41 @@ void update()
 			pz[i] += vz[i] * dT;
 		}
 	}
+	
+	
 }
 
 void display(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	glLoadIdentity();
-	gluLookAt(viewer[0], viewer[1],viewer[2],0.0,0.0,0.0, 
-1.0,1.0,1.0);
+	if (follow)
+	{
+		gluLookAt(getMean(N, px), getMean(N, py),getMean(N, pz)+10,getMean(N, px), getMean(N, py),getMean(N, pz),
+		1.0,1.0,1.0);
+	}
+	else
+	{
+		gluLookAt(viewer[0], viewer[1],viewer[2],0.0,0.0,0.0, 
+		1.0,1.0,1.0);
+	}
+	printf("%f %f %f",getMean(N, px), getMean(N, py),getMean(N, pz));
 	glRotatef(theta[0],1.0,0.0,0.0);
 	glRotatef(theta[1],0.0,1.0,0.0);
 	glRotatef(theta[2],0.0,0.0,1.0);
 	glScalef(zoom, zoom, zoom);
 	
+	if (lighting)
+	{
+		GLfloat light_position[] = { 3.0, 0.0, 0.0, 1.0 };
+
+
+		glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+
+		glEnable(GL_LIGHTING);
+		glEnable(GL_LIGHT0);
+		glEnable(GL_DEPTH_TEST);
+	}
 	
 	printf("Iter: %i\n", ++iter);
 	plot();
@@ -322,11 +364,12 @@ int main(int argc, char **argv)
 	glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGB|GLUT_DEPTH);
 	glutInitWindowSize(800,800);
 	char buf[256]; 
-	sprintf(buf, "N-Body Simulation, %i Bodies, %i Dimensions", N, p);
+	sprintf(buf, "N-Body Simulation, %i Bodies, %i Dimensions, %i Thread(s)", N, p, T);
 	glutCreateWindow(buf);
 	glutReshapeFunc(myReshape);
 	glutDisplayFunc(display);
 	glutKeyboardFunc(keys);
 	glEnable(GL_DEPTH_TEST);
 	glutMainLoop();
+	return 0;
 }
