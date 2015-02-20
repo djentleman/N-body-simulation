@@ -17,9 +17,9 @@ static GLdouble viewer[]={0.0,0.0,5.0};
 
 static double G = 0.000000001;//0.00000000006674; // newtons gravitational constant
 
-static int N = 100;
+static int N = 200;
 static int DELAY = 0; // delay between frames (microseconds)
-static double dT = 0.5; // change it rate of time
+static double dT = 0.2; // change it rate of time
 
 static int p = 2; // number of dimensions, either 2 or 3
 
@@ -29,15 +29,15 @@ double M = 1000000; // maximum mass, only works if rM
 double R = 10; // body spawn radius
 
 bool rM = true; // random masses
-bool rV = false; // random initial velocity
-bool col = true; // collisio2
+bool rV = true; // random initial velocity
+bool col = false; // collisio2
 
 int T = 8; // thread count
 
 bool follow = true; // camera follow average point
 bool lighting = false;
 
-double IR = 0.2; // imbalance of clusters
+double IR = 0.3; // imbalance of clusters
 
 
 // position arrays
@@ -204,8 +204,16 @@ void init()
 		
 		if (rV)
 		{
-			vx[i] =(((double)rand()/RAND_MAX)-0.5)/100;
-			vy[i] =(((double)rand()/RAND_MAX)-0.5)/100;
+			vx[i] =(((double)rand()/RAND_MAX)-0.5);
+			vy[i] =(((double)rand()/RAND_MAX)-0.5);
+			if (p == 2 || !rV)
+			{
+				vz[i] = 0;
+			}
+			else
+			{
+				vz[i] = (((double)rand()/RAND_MAX)-0.5);
+			}
 		}
 		else if (col)
 		{
@@ -226,14 +234,7 @@ void init()
 			vy[i] = 0;
 		}
 		
-		if (p == 2 || !rV)
-		{
-			vz[i] = 0;
-		}
-		else
-		{
-			vz[i] = (((double)rand()/RAND_MAX)-0.5)/100;
-		}
+		
 		//printf("Position: %f %f %f", px[i], py[i], pz[i]);
 		//printf("	Velocity: %f %f %f\n", vx[i], vy[i], vz[i]);
 		
@@ -297,7 +298,7 @@ void display(void)
 	glLoadIdentity();
 	if (follow)
 	{
-		gluLookAt(getMean(N, px), getMean(N, py),getMean(N, pz)+10,getMean(N, px), getMean(N, py),getMean(N, pz),
+		gluLookAt(getMean(N, px), getMean(N, py),getMean(N, pz)+10+zoom,getMean(N, px), getMean(N, py),getMean(N, pz),
 		1.0,1.0,1.0);
 	}
 	else
@@ -309,7 +310,6 @@ void display(void)
 	glRotatef(theta[0],1.0,0.0,0.0);
 	glRotatef(theta[1],0.0,1.0,0.0);
 	glRotatef(theta[2],0.0,0.0,1.0);
-	glScalef(zoom, zoom, zoom);
 	
 	if (lighting)
 	{
@@ -338,8 +338,8 @@ void keys(unsigned char key, int x, int y)
 	if(key == 'x') theta[0]+=1.0;
 	if(key == 'y') theta[1]+=1.0;
 	if(key == 'z') theta[2]+=1.0;
-	if(key == 'a') zoom+=0.1;
-	if(key == 'b') zoom-=0.1;
+	if(key == 'a') zoom-=0.1;
+	if(key == 'b') zoom+=0.1;
 	display();
 }
 
