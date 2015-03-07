@@ -7,6 +7,7 @@
 #include <math.h>
 #include <stdbool.h>
 #include <omp.h>
+#include <time.h>
 
 
 
@@ -20,7 +21,7 @@ static int N = 100;
 static int DELAY = 0; // delay between frames (microseconds)
 static double dT = 0.02; // change it rate of time
 
-static int p = 3; // number of dimensions, either 2 or 3
+static int p = 2; // number of dimensions, either 2 or 3
 
 int iter = 0;
 
@@ -39,7 +40,10 @@ bool rV = false; // random initial velocity
 bool ex = false; // expansion
 bool rot = false; // rotation
 bool gc = false; // galactic center
-bool clu = true; // collisio2
+bool clu = false; // collisio2
+
+clock_t start;
+clock_t end; // for measuring seconds elapsed
 
 bool img = false;
 
@@ -50,14 +54,14 @@ double cX = -10;
 double IR = 0.9; // imbalance of clusters
 
 double er = 1; // expansion rate
-double rr = 3; // rotation rate
+double rr = 1; // rotation rate
 
 int T = 16; // thread count
 
 bool gauss = true; // generate randoms from a gaussian distribution
 
 bool follow = true; // camera follow average point
-bool lighting = true;
+bool lighting = false;
 
 
 
@@ -97,7 +101,7 @@ double getMinkowskiDistance(int i, int j)
 	
 	norm = pow(norm, (double)1/(double)p);
 	//printf("%f %f %f, %f %f %f -> %e\n", px[i], py[i], pz[i], px[j], py[j], pz[j], norm);
-	return norm;
+	return pow(norm, p);
 }
 
 double getForce(int i, int j, int d)
@@ -386,6 +390,15 @@ void display(void)
 	glutSwapBuffers();
 	update();
 	usleep(DELAY);
+	if (bound)
+	{
+		if (iter >= miter)
+		{
+			end = clock();
+			printf("Elapsed: %f\n", ((float)end - (float)start));
+			return;
+		}
+	}
 	glutPostRedisplay();
 }
 
@@ -421,6 +434,7 @@ void myReshape(int w, int h)
 
 int main(int argc, char **argv)
 {
+	start = clock();
 	init();
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGB|GLUT_DEPTH);
