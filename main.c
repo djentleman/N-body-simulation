@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <windows.h>
 #include <GL/glut.h>
 #include <GL/glu.h>
@@ -10,38 +11,53 @@
 
 
 
-
-
 static GLfloat theta[]={0.0,0.0,0.0};
 static GLdouble viewer[]={0.0,0.0,5.0};
 
-static double G = 0.000000001;//0.00000000006674; // newtons gravitational constant
+static double G = 0.000001;//0.00000000006674; // newtons gravitational constant
 
-static int N = 200;
+static int N = 100;
 static int DELAY = 0; // delay between frames (microseconds)
-static double dT = 0.2; // change it rate of time
+static double dT = 0.02; // change it rate of time
 
 static int p = 3; // number of dimensions, either 2 or 3
 
 int iter = 0;
 
+int miter = 1000; // max iterations
+bool bound = true; // if bound, stop when iter == miter, else run forever
+
+static int height = 800;
+static int width = 800;
+
 double M = 1000000; // maximum mass, only works if rM
-double R = 10; // body spawn radius
+double GC = 10000000; // centeral galactic mass
+double R = 6; // body spawn radius
 
 bool rM = true; // random masses
-bool rV = true; // random initial velocity
-bool clu = false; // collisio2
+bool rV = false; // random initial velocity
+bool ex = false; // expansion
+bool rot = false; // rotation
+bool gc = false; // galactic center
+bool clu = true; // collisio2
+
+bool img = false;
 
 // collision speeds
-double cY = 0.8;
-double cX = 0.0;
+double cY = -0.0;
+double cX = -10;
 
-double IR = 0.1; // imbalance of clusters
+double IR = 0.9; // imbalance of clusters
 
-int T = 8; // thread count
+double er = 1; // expansion rate
+double rr = 3; // rotation rate
+
+int T = 16; // thread count
+
+bool gauss = true; // generate randoms from a gaussian distribution
 
 bool follow = true; // camera follow average point
-bool lighting = false;
+bool lighting = true;
 
 
 
@@ -55,6 +71,8 @@ double* vy;
 double* vz;
 // mass array
 double* m;
+
+
 
 
 double getMean(int n, double* arr)
@@ -159,7 +177,7 @@ void init()
 	
 	m = malloc(sizeof(double) * N);
 	
-	srand(time(NULL));
+	srand(time(0));
 	int i;
 	double rnd;
 	for (i = 0; i < N; i++)
@@ -170,14 +188,14 @@ void init()
 			if (rnd > IR)
 			{
 				// cluster 1
-				px[i] = (((double)rand()/RAND_MAX)-0.5)/2;
-				py[i] = (((double)rand()/RAND_MAX)-0.5)/2;
+				px[i] = (((double)rand()/RAND_MAX)-0.5)*2;
+				py[i] = (((double)rand()/RAND_MAX)-0.5)*(sqrt(1-pow(px[i], 2)))*2;
 			}
 			else
 			{
 				// cluster 2
-				px[i] = (((double)rand()/RAND_MAX)+2);
-				py[i] = (((double)rand()/RAND_MAX)+2);
+				px[i] = (((double)rand()/RAND_MAX)-0.5+R);
+				py[i] = (((double)rand()/RAND_MAX)-0.5)*((sqrt(pow(0.5, 2) - pow(px[i]-R, 2)))*2)+R;
 			}
 			
 			if (p == 2)
@@ -191,8 +209,14 @@ void init()
 		}
 		else
 		{
+			
+			
+			
 			px[i] = (((double)rand()/RAND_MAX)-0.5)*R;
-			py[i] = (((double)rand()/RAND_MAX)-0.5)*R;
+			// get max possible value of y
+			//a^2+b^2 = c^2
+			//b = sqrt((R/2)^2-px[i]^2)
+			py[i] = (((double)rand()/RAND_MAX)-0.5)*(sqrt(pow(R/2, 2)-pow(px[i], 2)))*2; // circular 
 			
 			
 			if (p == 2)
@@ -203,6 +227,16 @@ void init()
 			{
 				pz[i] = (((double)rand()/RAND_MAX)-0.5)*R;
 			}	
+			
+			if (rot && i == 0 && gc)
+			{
+				px[0] = 0;
+				py[0] = 0;
+				pz[0] = 0;
+			}
+			
+			
+			
 		}
 		
 		
@@ -232,17 +266,33 @@ void init()
 				vy[i] = -cY;
 			}
 		}
+		else if (ex)
+		{
+			vx[i] = px[i]*er;
+			vy[i] = py[i]*er;
+			vz[i] = pz[i]*er;
+		}
+		else if (rot)
+		{
+			vx[i] = py[i]*rr;
+			vy[i] = -px[i]*rr;
+			vz[i] = 0;
+		}
 		else
 		{
 			vx[i] = 0;
 			vy[i] = 0;
+			vz[0] = 0;
 		}
 		
 		
 		//printf("Position: %f %f %f", px[i], py[i], pz[i]);
 		//printf("	Velocity: %f %f %f\n", vx[i], vy[i], vz[i]);
-		
-		if (rM)
+		if (rot && i == 0 && gc)
+		{
+			m[0] = GC;
+		}
+		else if (rM)
 		{
 			m[i] = (((double)rand()/RAND_MAX))*M;
 		}
@@ -325,10 +375,14 @@ void display(void)
 		glEnable(GL_LIGHT0);
 		glEnable(GL_DEPTH_TEST);
 	}
+	if (img) {
+		
+		} // do nothing
 	
 	printf("Iter: %i\n", ++iter);
 	plot();
 	glFlush();
+	
 	glutSwapBuffers();
 	update();
 	usleep(DELAY);
@@ -364,12 +418,13 @@ void myReshape(int w, int h)
 
 
 
+
 int main(int argc, char **argv)
 {
 	init();
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_DOUBLE|GLUT_RGB|GLUT_DEPTH);
-	glutInitWindowSize(800,800);
+	glutInitWindowSize(height,width);
 	char buf[256]; 
 	sprintf(buf, "N-Body Simulation, %i Bodies, %i Dimensions, %i Thread(s)", N, p, T);
 	glutCreateWindow(buf);
