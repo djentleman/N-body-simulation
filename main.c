@@ -25,7 +25,7 @@ static int p = 2; // number of dimensions, either 2 or 3
 
 int iter = 0;
 
-int miter = 1000; // max iterations
+int miter = 500; // max iterations
 bool bound = true; // if bound, stop when iter == miter, else run forever
 
 static int height = 800;
@@ -35,7 +35,7 @@ double M = 1000000; // maximum mass, only works if rM
 double GC = 10000000; // centeral galactic mass
 double R = 6; // body spawn radius
 
-bool rM = true; // random masses
+bool rM = false; // random masses
 bool rV = false; // random initial velocity
 bool ex = false; // expansion
 bool rot = false; // rotation
@@ -56,12 +56,14 @@ double IR = 0.9; // imbalance of clusters
 double er = 1; // expansion rate
 double rr = 1; // rotation rate
 
-int T = 16; // thread count
+int T = 8; // thread count
 
 bool gauss = true; // generate randoms from a gaussian distribution
 
 bool follow = true; // camera follow average point
 bool lighting = false;
+
+bool cmd = true; // allows command line input from user
 
 
 
@@ -378,6 +380,7 @@ void display(void)
 		glEnable(GL_LIGHTING);
 		glEnable(GL_LIGHT0);
 		glEnable(GL_DEPTH_TEST);
+		
 	}
 	if (img) {
 		
@@ -428,12 +431,166 @@ void myReshape(int w, int h)
 	glMatrixMode(GL_MODELVIEW);
 }
 
+char* read()
+{
+	char *buffer = malloc(sizeof(char) * 100);
+    int read;
+    read = fgets(buffer, 100, stdin);
+	
+    if (-1 != read)
+        return buffer;
+    return NULL;
+}
 
+void getInput()
+{
+	
+	char* in;
+	int v;
+	float f;
+	// gets input from user, updates globals
+	printf("Nbody.c UI\n");
+	printf("Press Enter To Set Parameters To Default\n\n");
+	
+	
+	
+	printf("Number Of Bodies: ");
+	v = atoi(read());
+	if (v != 0){N = v;}
+	
+	printf("Number Of Dimensions {2, 3}: ");
+	v = atoi(read());
+	if (v == 2 || v == 3){p = v;}
+	
+	printf("Number Of Threads: ");
+	v = atoi(read());
+	if (v != 0){T = v;}
+	
+	printf("Gravitational Constant: ");
+	f = atof(read());
+	if (f != 0){G = f;}
+	
+	printf("dT (Rate Of Change In Time): ");
+	f = atof(read());
+	if (f != 0){dT = f;}
+	
+	printf("Spawn Radius: ");
+	f = atof(read());
+	if (f != 0){R = f;}
+	
+	printf("Delay Between Frames (micro seconds): ");
+	v = atoi(read());
+	if (v != 0){DELAY = v;}
+	
+	printf("Stop After n Iterations? 1=NO, 2=YES: ");
+	v = atoi(read());
+	if (v == 2)
+	{
+		bound = true;
+		printf("How Many Iterations? ");
+		v = atoi(read());
+		if (v != 0){miter = v;}
+		
+	}
+	else if (v == 1)
+	{
+		bound = false;
+	}
+	
+	printf("Show lighting on bodies? 1=NO, 2=YES: ");
+	v = atoi(read());
+	if (v == 2)
+	{
+		lighting = true;
+	}
+	else if (v == 1)
+	{
+		lighting = false;
+	}
+	
+	printf("Randomly Initialize Masses? 1=NO, 2=YES: ");
+	v = atoi(read());
+	if (v == 2)
+	{
+		rM  = true;
+	}
+	else if (v == 1)
+	{
+		rM = false;
+	}
+	
+	printf("\nInitial Conditions:\n1=No Initial Velocity\n2=Random Initial Velocity\n3=Rotating Cluster\n4=Expanding Cluster\n5=Cluster Collision\n: ");
+	v = atoi(read());
+	if (v != 0)
+	{
+		rV = false; // random initial velocity
+		ex = false; // expansion
+		rot = false; // rotation
+		clu = false; // collisio2
+	}
+	if (v == 2)
+	{
+		rV = true; // random initial velocity
+	}
+	if (v == 3)
+	{
+		rot = true; // rotation
+		// set up rotation params
+		
+		printf("Angular Velocity: ");
+		f = atof(read());
+		if (f != 0){rr = f;}
+		
+		printf("Centeral Galactic Mass? 1=NO, 2=YES: ");
+		v = atoi(read());
+		if (v == 2)
+		{
+			gc = true; // galactic center
+			printf("Mass Of CGM: ");
+			v = atoi(read());
+			if (f != 0){rr = v;}
+		}
+		else if (v == 1)
+		{
+			GC = false; // galactic center
+		}
+	}
+	if (v == 4)
+	{
+		ex = true;
+		// set up cluster expansion
+		printf("Expansion Rate: ");
+		f = atof(read());
+		if (f != 0){er = f;}
+	}
+	if (v == 5)
+	{
+		clu = true;
+		// set up cluster collision
+		
+		printf("Cluster Imbalance: ");
+		f = atof(read());
+		if (f != 0){IR = f;}
+		
+		printf("Secondary Cluster X Velocity: ");
+		f = atof(read());
+		if (f != 0){cX = f;}
+		
+		printf("Secondary Cluster Y Velocity: ");
+		f = atof(read());
+		if (f != 0){cY = f;}
+		
+	}
+}
 
 
 
 int main(int argc, char **argv)
 {
+	if (cmd)
+	{
+		getInput();
+	}
 	start = clock();
 	init();
 	glutInit(&argc, argv);
